@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Image → PDF Converter — MVP</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #0f1724;
+    --card: #0b1220;
+    --accent: #06b6d4;
+    --muted: #94a3b8;
+    --surface: #0b1220;
+    --white: #e6eef6;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071126 0%, #07132a 100%);color:var(--white)}
+  .wrap{max-width:980px;margin:32px auto;padding:24px;background:rgba(255,255,255,0.03);border-radius:12px;box-shadow:0 6px 24px rgba(2,6,23,0.6)}
+  h1{margin:0;font-size:20px}
+  p.lead{color:var(--muted);margin:6px 0 18px}
+  .uploader{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .drop {
+    flex:1;min-height:120px;border-radius:10px;border:2px dashed rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);
+    transition:background .2s, border-color .15s;
+  }
+  .drop.dragover{background:linear-gradient(180deg, rgba(6,182,212,0.06), rgba(6,182,212,0.02)); border-color: rgba(6,182,212,0.6);}
+  .controls{width:260px;min-width:220px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type=file]{display:none;}
+  .btn{display:inline-block;padding:10px 14px;border-radius:8px;background:linear-gradient(90deg,var(--accent),#3b82f6);color:#022;cursor:pointer;font-weight:600;border:none}
+  .ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:9px 12px;border-radius:8px;color:var(--white);cursor:pointer}
+  .thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .thumb{
+    width:110px; height:86px; border-radius:8px; overflow:hidden; background:#071427;display:flex;flex-direction:column;align-items:center;
+    justify-content:flex-start;padding:6px;position:relative;border:1px solid rgba(255,255,255,0.03);cursor:grab;
+  }
+  .thumb img{max-width:100%; max-height:66px; object-fit:cover;border-radius:6px}
+  .thumb .meta{font-size:11px;color:var(--muted);margin-top:6px;text-align:center;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;width:100%}
+  .thumb .order{position:absolute;left:6px;top:6px;background:rgba(0,0,0,0.45);padding:2px 6px;border-radius:6px;font-size:11px}
+  .thumb .del{position:absolute;right:6px;top:6px;background:rgba(255,255,255,0.06);border-radius:6px;padding:3px;font-size:11px;cursor:pointer}
+  .options{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  select,input[type=range]{width:100%}
+  footer{margin-top:16px;display:flex;gap:10px;align-items:center;justify-content:flex-end}
+  @media (max-width:720px){ .uploader{flex-direction:column-reverse} .controls{width:100%} footer{justify-content:stretch}}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px}
+  .small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="wrap" role="main" aria-labelledby="title">
+    <h1 id="title">Image → PDF Converter (MVP)</h1>
+    <p class="lead">Convert PNG / JPG / WebP images into a single downloadable multi‑page PDF — all in your browser. Drag & drop, reorder, compress, choose page size.</p>
+
+    <div class="uploader" aria-live="polite">
+      <div class="drop" id="dropzone">
+        <div style="text-align:center;">
+          <strong id="droptext">Drag & drop images here</strong>
+          <div class="hint">or <label for="fileInput" style="color:var(--accent);cursor:pointer">choose files</label></div>
+          <input id="fileInput" type="file" accept="image/*" multiple>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label for="pagesize">Page size</label>
+        <select id="pagesize" aria-label="Page size">
+          <option value="a4">A4 (210 × 297 mm)</option>
+          <option value="letter">Letter (8.5 × 11 in)</option>
+        </select>
+
+        <label for="orientation">Orientation</label>
+        <select id="orientation" aria-label="Orientation">
+          <option value="auto">Auto (per image)</option>
+          <option value="portrait">Force Portrait</option>
+          <option value="landscape">Force Landscape</option>
+        </select>
+
+        <label for="quality">Image quality (JPEG compression)</label>
+        <input id="quality" type="range" min="0.3" max="1" step="0.05" value="0.9">
+        <div class="small">Quality: <span id="qualityVal">0.90</span></div>
+
+        <div class="options">
+          <div>
+            <label><input id="fit" type="checkbox" checked> Fit image to page</label>
+          </div>
+          <div>
+            <label><input id="bgwhite" type="checkbox"> White background (for PNG)</label>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <button id="convertBtn" class="btn">Convert to PDF</button>
+          <button id="clearBtn" class="ghost" title="Clear all files">Clear</button>
+        </div>
+
+        <div class="hint">Tip: Reorder thumbnails by dragging them. Maximum recommended images: 50 (browser dependent).</div>
+      </div>
+    </div>
+
+    <div class="thumbs" id="thumbs" aria-label="Uploaded images"></div>
+
+    <footer>
+      <div style="flex:1;color:var(--muted)">Ready</div>
+      <div style="font-size:12px;color:var(--muted)">Built with ❤️ • Client‑side only</div>
+    </footer>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(async function(){
+  // Simple helper utilities
+  const $ = id => document.getElementById(id);
+  const drop = $('dropzone'), fileInput = $('fileInput'), thumbs = $('thumbs');
+  const convertBtn = $('convertBtn'), clearBtn = $('clearBtn');
+  const pagesizeSelect = $('pagesize'), orientationSelect = $('orientation');
+  const qualityInput = $('quality'), qualityVal = $('qualityVal');
+  const fitCheckbox = $('fit'), bgwhite = $('bgwhite');
+
+  qualityInput.addEventListener('input', ()=> qualityVal.textContent = parseFloat(qualityInput.value).toFixed(2));
+
+  let images = []; // {file, dataUrl, name, width, height, id}
+
+  function updateThumbnails(){
+    thumbs.innerHTML = '';
+    images.forEach((it, idx) => {
+      const card = document.createElement('div');
+      card.className = 'thumb';
+      card.draggable = true;
+      card.dataset.id = it.id;
+      card.innerHTML = `
+        <div class="order">${idx+1}</div>
+        <div class="del" title="Remove">✕</div>
+        <img alt="${escapeHtml(it.name)}" src="${it.dataUrl}">
+        <div class="meta">${escapeHtml(it.name)}</div>
+      `;
+      thumbs.appendChild(card);
+
+      // delete
+      card.querySelector('.del').addEventListener('click', (e)=>{
+        images = images.filter(x=>x.id !== it.id); updateThumbnails();
+      });
+
+      // drag handlers for reorder
+      card.addEventListener('dragstart', (e)=> {
+        e.dataTransfer.setData('text/plain', it.id);
+        card.style.opacity = '0.4';
+      });
+      card.addEventListener('dragend', (e)=> card.style.opacity = '');
+      card.addEventListener('dragover', (e)=> {
+        e.preventDefault();
+        card.style.borderColor = 'rgba(6,182,212,0.5)';
+      });
+      card.addEventListener('dragleave', (e)=> card.style.borderColor = '');
+      card.addEventListener('drop', (e)=> {
+        e.preventDefault();
+        const fromId = e.dataTransfer.getData('text/plain');
+        const toId = it.id;
+        reorder(fromId, toId);
+      });
+    });
+  }
+
+  function reorder(fromId, toId){
+    const fromIndex = images.findIndex(x=>x.id===fromId);
+    const toIndex = images.findIndex(x=>x.id===toId);
+    if(fromIndex<0 || toIndex<0 || fromIndex===toIndex) return;
+    const [item] = images.splice(fromIndex,1);
+    images.splice(toIndex,0,item);
+    updateThumbnails();
+  }
+
+  function escapeHtml(s){return (s+'').replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]});}
+
+  function fileToDataURL(file){ return new Promise((res,rej)=>{
+    const fr = new FileReader();
+    fr.onload = ()=> res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  })}
+
+  async function addFiles(fileList){
+    const list = Array.from(fileList).filter(f=>f.type.startsWith('image/'));
+    if(list.length===0) return;
+    for(const f of list){
+      try{
+        const dataUrl = await fileToDataURL(f);
+        // get intrinsic size
+        const dims = await getImageSize(dataUrl);
+        images.push({file:f, dataUrl, name:f.name, width:dims.width, height:dims.height, id: cryptoRandomId()});
+      }catch(e){
+        console.warn('skip', f, e);
+      }
+    }
+    updateThumbnails();
+  }
+
+  function cryptoRandomId(){ return 'id-'+Math.random().toString(36).slice(2,9); }
+
+  function getImageSize(dataUrl){ return new Promise((res,rej)=>{
+    const img = new Image();
+    img.onload = ()=> res({width:img.naturalWidth, height:img.naturalHeight});
+    img.onerror = rej;
+    img.src = dataUrl;
+  })}
+
+  // Drop events
+  ;['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev,(e)=>{e.preventDefault(); drop.classList.add('dragover');}));
+  ;['dragleave','drop'].forEach(ev=> drop.addEventListener(ev,(e)=>{e.preventDefault(); drop.classList.remove('dragover');}));
+  drop.addEventListener('drop', async (e)=> {
+    const dt = e.dataTransfer;
+    if(dt && dt.files) await addFiles(dt.files);
+  });
+
+  // File input
+  fileInput.addEventListener('change', async (e)=> {
+    await addFiles(e.target.files);
+    fileInput.value = '';
+  });
+
+  // Clear
+  clearBtn.addEventListener('click', ()=> { images = []; updateThumbnails(); });
+
+  // Convert
+  convertBtn.addEventListener('click', async ()=>{
+    if(images.length===0){ alert('No images added.'); return; }
+    convertBtn.disabled = true; convertBtn.textContent = 'Converting...';
+    try{
+      await buildAndDownloadPDF();
+    } catch(err){
+      console.error(err);
+      alert('Error creating PDF: '+err.message);
+    } finally{
+      convertBtn.disabled = false; convertBtn.textContent = 'Convert to PDF';
+    }
+  });
+
+  async function buildAndDownloadPDF(){
+    // Load jsPDF
+    const { jsPDF } = window.jspdf;
+    // Page sizes in mm
+    const pageSizes = {
+      'a4': {w:210, h:297},
+      'letter': {w:215.9, h:279.4}
+    };
+    const ps = pageSizes[ pagesizeSelect.value ] || pageSizes.a4;
+    const quality = parseFloat(qualityInput.value);
+    const forced = orientationSelect.value; // auto | portrait | landscape
+    const fit = fitCheckbox.checked;
+    const whiteBg = bgwhite.checked;
+
+    // Create doc starting with the first page
+    const doc = new jsPDF({ unit: 'mm', format: [ps.w, ps.h] });
+
+    // Helper to convert image per page
+    for(let i=0;i<images.length;i++){
+      const it = images[i];
+      // Determine orientation for this page
+      const imgW = it.width, imgH = it.height;
+      const imgOrient = imgW >= imgH ? 'landscape' : 'portrait';
+      const orient = (forced==='auto') ? imgOrient : forced;
+
+      // If orientation differs from doc's current orientation for the page, make sure we set correct dimensions
+      let pageW = ps.w, pageH = ps.h;
+      if(orient === 'landscape' && pageW < pageH){
+        // swap
+        [pageW, pageH] = [pageH, pageW];
+      } else if(orient === 'portrait' && pageW > pageH){
+        [pageW, pageH] = [pageH, pageW];
+      }
+
+      // create a temporary canvas to draw and compress the image to target pixel size
+      // convert mm to px for canvas: we'll target 96 DPI nominally (for reasonable quality)
+      const dpi = 150; // higher DPI produces larger file; 150 is a good balance for images -> pdf
+      const pxW = Math.round(pageW/25.4 * dpi);
+      const pxH = Math.round(pageH/25.4 * dpi);
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Calculate draw dimensions (fit or cover)
+      let drawW = pxW, drawH = pxH;
+      if(fit){
+        // fit inside page preserving aspect ratio
+        const ratio = Math.min(pxW / it.width, pxH / it.height);
+        drawW = Math.round(it.width * ratio);
+        drawH = Math.round(it.height * ratio);
+      } else {
+        // cover: fill page, cropping edges
+        const ratio = Math.max(pxW / it.width, pxH / it.height);
+        drawW = Math.round(it.width * ratio);
+        drawH = Math.round(it.height * ratio);
+      }
+
+      // place image centered
+      canvas.width = pxW;
+      canvas.height = pxH;
+
+      // background if requested
+      if(whiteBg){
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+      } else {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+      }
+
+      // load image element
+      const img = await loadImage(it.dataUrl);
+      // calculate position
+      const dx = Math.round((canvas.width - drawW)/2);
+      const dy = Math.round((canvas.height - drawH)/2);
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+
+      // get compressed dataURL
+      const mime = 'image/jpeg';
+      const dataUrl = canvas.toDataURL(mime, quality);
+
+      // convert px dims to mm for jsPDF placement
+      const mmW = pageW;
+      const mmH = pageH;
+      // we want to add the image covering entire page with correct aspect (we used canvas px => mm ratio matches)
+      // use addImage(imgData, format, x, y, width, height)
+      if(i>0) doc.addPage([pageW, pageH]);
+      doc.addImage(dataUrl, 'JPEG', 0, 0, mmW, mmH, undefined, 'FAST');
+    }
+
+    // Generate blob and trigger download
+    const pdfBlob = doc.output('blob');
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = (images.length===1 ? images[0].name.replace(/\.[^/.]+$/, "") : 'images') + '.pdf';
+    a.download = safeName;
+    document.body.appendChild(a); a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function loadImage(src){ return new Promise((res,rej)=>{
+    const i = new Image();
+    i.onload = ()=> res(i);
+    i.onerror = rej;
+    i.src = src;
+  })}
+
+  // Accessibility: keyboard drop target
+  drop.tabIndex = 0;
+  drop.addEventListener('keydown', (e)=> {
+    if(e.key === 'Enter' || e.key === ' ') fileInput.click();
+  });
+
+  // Support paste images from clipboard
+  window.addEventListener('paste', async (e)=>{
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    const files = [];
+    for(const it of items){
+      if(it.kind === 'file' && it.type.startsWith('image/')){
+        files.push(it.getAsFile());
+      }
+    }
+    if(files.length) await addFiles(files);
+  });
+
+  // small helper: pre-warm with sample images? (commented)
+  // await addFiles([])
+
+})();
+</script>
+</body>
+</html>
