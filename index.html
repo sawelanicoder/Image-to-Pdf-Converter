@@ -2,210 +2,225 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Image to PDF Converter</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image to PDF Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
     body {
-        font-family: Arial, sans-serif;
-        background: #f5f5f5;
-        margin: 0;
-        padding: 0;
-        transition: background 0.3s, color 0.3s;
+        font-family: 'Poppins', sans-serif;
+        background: linear-gradient(135deg, #f0f4ff, #e4ecff);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        transition: background 0.5s;
     }
-    .dark-mode {
-        background: #121212;
-        color: #f5f5f5;
+    body.dark-mode {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        color: #fff;
     }
     .container {
-        max-width: 700px;
-        margin: 30px auto;
-        padding: 20px;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        background: #fff;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
+        max-width: 500px;
+        width: 100%;
+        transition: background 0.5s, color 0.5s;
     }
-    .dark-mode .container {
-        background: #1e1e1e;
+    body.dark-mode .container {
+        background: #222;
     }
     h1 {
         text-align: center;
+        font-weight: 600;
+        margin-bottom: 1rem;
     }
-    .upload-area {
-        border: 2px dashed #aaa;
+    .drop-zone {
+        border: 2px dashed #999;
         padding: 20px;
         text-align: center;
+        border-radius: 8px;
         cursor: pointer;
-        border-radius: 10px;
-        background: #fafafa;
-        margin-bottom: 15px;
+        transition: border-color 0.3s, background 0.3s;
     }
-    .dark-mode .upload-area {
-        background: #2a2a2a;
-        border-color: #666;
+    .drop-zone.dragover {
+        border-color: #007bff;
+        background: rgba(0, 123, 255, 0.05);
     }
-    input[type="file"] {
-        display: none;
+    .drop-zone-icon {
+        font-size: 40px;
+        color: #007bff;
+        margin-bottom: 10px;
     }
-    #preview {
+    .preview {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        justify-content: center;
         margin-top: 10px;
     }
-    #preview img {
-        max-width: 120px;
-        max-height: 120px;
-        border-radius: 8px;
+    .preview img {
+        height: 70px;
+        border-radius: 6px;
         object-fit: cover;
-        border: 2px solid #ddd;
+        border: 1px solid #ccc;
+        position: relative;
+    }
+    .remove-btn {
+        position: relative;
+        top: -65px;
+        left: 55px;
+        background: red;
+        color: white;
+        border: none;
+        font-size: 12px;
+        border-radius: 50%;
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+        text-align: center;
+        line-height: 18px;
+    }
+    select, button {
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        margin: 5px;
     }
     button {
-        padding: 10px 20px;
         background: #007bff;
         color: white;
         border: none;
-        border-radius: 5px;
         cursor: pointer;
-        font-size: 16px;
-        margin-top: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
     button:hover {
-        background: #0056b3;
+        transform: scale(1.05);
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
     }
-    .controls {
-        margin-top: 15px;
-        display: flex;
-        justify-content: space-around;
-        flex-wrap: wrap;
-    }
-    select {
-        padding: 5px;
+    .loading {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
     }
 </style>
 </head>
 <body>
-
 <div class="container">
     <h1>📸 Image to PDF Converter</h1>
-
-    <div class="upload-area" id="uploadArea">
+    <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-icon">📂</div>
         Drag & Drop images here or click to select
-        <input type="file" id="imageInput" multiple accept="image/*" capture="environment">
+        <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
     </div>
-
-    <div id="preview"></div>
-
-    <div class="controls">
-        <div>
-            <label>Page Size: </label>
-            <select id="pageSize">
-                <option value="a4">A4</option>
-                <option value="letter">Letter</option>
-            </select>
-        </div>
-        <div>
-            <label>Orientation: </label>
-            <select id="orientation">
-                <option value="portrait">Portrait</option>
-                <option value="landscape">Landscape</option>
-            </select>
-        </div>
-        <div>
-            <button id="toggleTheme">🌙 Dark/Light</button>
-        </div>
+    <div class="preview" id="preview"></div>
+    <div>
+        Page Size: 
+        <select id="pageSize">
+            <option value="a4">A4</option>
+            <option value="letter">Letter</option>
+        </select>
+        Orientation: 
+        <select id="orientation">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+        </select>
+        <button id="themeToggle">🌙 Dark/Light</button>
     </div>
-
     <button id="convertBtn">Convert to PDF</button>
+    <div class="loading" id="loading">⏳ Generating PDF...</div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const { jsPDF } = window.jspdf;
-const uploadArea = document.getElementById('uploadArea');
-const fileInput = document.getElementById('imageInput');
-const preview = document.getElementById('preview');
-let filesList = [];
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const themeToggle = document.getElementById('themeToggle');
+    const loading = document.getElementById('loading');
+    let filesArray = [];
 
-function handleFiles(files) {
-    for (let file of files) {
-        if (file.type.startsWith('image/')) {
-            filesList.push(file);
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            preview.appendChild(img);
-        }
-    }
-}
-
-// Click to open file picker
-uploadArea.addEventListener('click', () => fileInput.click());
-
-// Handle drag and drop
-uploadArea.addEventListener('dragover', e => {
-    e.preventDefault();
-    uploadArea.style.borderColor = '#007bff';
-});
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.style.borderColor = '#aaa';
-});
-uploadArea.addEventListener('drop', e => {
-    e.preventDefault();
-    uploadArea.style.borderColor = '#aaa';
-    handleFiles(e.dataTransfer.files);
-});
-
-// Handle file picker
-fileInput.addEventListener('change', e => handleFiles(e.target.files));
-
-// Dark mode toggle
-document.getElementById('toggleTheme').addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-});
-
-// Convert to PDF
-document.getElementById('convertBtn').addEventListener('click', () => {
-    if (filesList.length === 0) {
-        alert("Please upload at least one image.");
-        return;
-    }
-
-    const pageSize = document.getElementById('pageSize').value;
-    const orientation = document.getElementById('orientation').value;
-    const pdf = new jsPDF({ orientation: orientation, unit: 'pt', format: pageSize });
-    let firstPage = true;
-    let processed = 0;
-
-    filesList.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const img = new Image();
-            img.onload = () => {
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-
-                // Scale to fit
-                let ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
-                let imgWidth = img.width * ratio;
-                let imgHeight = img.height * ratio;
-                let x = (pageWidth - imgWidth) / 2;
-                let y = (pageHeight - imgHeight) / 2;
-
-                if (!firstPage) pdf.addPage();
-                pdf.addImage(img, 'JPEG', x, y, imgWidth, imgHeight);
-                firstPage = false;
-
-                processed++;
-                if (processed === filesList.length) {
-                    pdf.save('images.pdf');
-                }
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
     });
-});
-</script>
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', e => handleFiles(e.target.files));
 
+    function handleFiles(files) {
+        [...files].forEach(file => {
+            if (file.type.startsWith('image/')) {
+                filesArray.push(file);
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    const remove = document.createElement('button');
+                    remove.innerHTML = '×';
+                    remove.classList.add('remove-btn');
+                    remove.onclick = () => {
+                        filesArray = filesArray.filter(f => f !== file);
+                        preview.removeChild(wrapper);
+                    };
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'relative';
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(remove);
+                    preview.appendChild(wrapper);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    document.getElementById('convertBtn').addEventListener('click', async () => {
+        if (!filesArray.length) {
+            alert("Please select images first.");
+            return;
+        }
+        loading.style.display = 'block';
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: document.getElementById('orientation').value,
+            unit: 'pt',
+            format: document.getElementById('pageSize').value
+        });
+        for (let i = 0; i < filesArray.length; i++) {
+            const imgData = await readFileAsDataURL(filesArray[i]);
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const img = new Image();
+            img.src = imgData;
+            await new Promise(res => img.onload = res);
+            let ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+            let imgWidth = img.width * ratio;
+            let imgHeight = img.height * ratio;
+            let x = (pageWidth - imgWidth) / 2;
+            let y = (pageHeight - imgHeight) / 2;
+            pdf.addImage(img, 'JPEG', x, y, imgWidth, imgHeight);
+            if (i < filesArray.length - 1) pdf.addPage();
+        }
+        pdf.save('converted.pdf');
+        loading.style.display = 'none';
+    });
+
+    function readFileAsDataURL(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+    });
+</script>
 </body>
 </html>
