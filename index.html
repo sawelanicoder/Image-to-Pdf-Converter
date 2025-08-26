@@ -1,1 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image to PDF Converter</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- jsPDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+      <h1>📸 Image to PDF Converter</h1>
+      <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-icon">📂</div>
+          Drag & Drop images here or click to select
+          <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+      </div>
+      <div class="preview" id="preview"></div>
+      <div>
+          Page Size: 
+          <select id="pageSize">
+              <option value="a4">A4</option>
+              <option value="letter">Letter</option>
+          </select>
+          Orientation: 
+          <select id="orientation">
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+          </select>
+          <button id="themeToggle">🌙 Dark/Light</button>
+      </div>
+      <button id="convertBtn">Convert to PDF</button>
+      <div class="loading" id="loading">⏳ Generating PDF...</div>
+  </div>
+
+  <!-- Link to external JS -->
+  <script src="script.js"></script>
+</body>
+</html>
 
